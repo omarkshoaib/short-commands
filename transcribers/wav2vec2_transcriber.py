@@ -5,7 +5,7 @@ import librosa  # type: ignore
 from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC  # type: ignore
 
 import config
-from utils.buckwalter import buckwalter_to_arabic
+from utils.buckwalter import normalize_arabic_text
 
 
 class Wav2Vec2Transcriber:
@@ -24,4 +24,4 @@ class Wav2Vec2Transcriber:
 			logits = self._model(inputs.input_values.to(self._model.device)).logits
 			pred_ids = torch.argmax(logits, dim=-1)
 			text = self._processor.batch_decode(pred_ids)[0]
-		return buckwalter_to_arabic(text.strip())
+		return normalize_arabic_text(text)

@@ -3,6 +3,7 @@ from typing import Optional
 from faster_whisper import WhisperModel  # type: ignore
 
 import config
+from utils.buckwalter import normalize_arabic_text
 
 
 class WhisperTurboTranscriber:
@@ -21,4 +22,4 @@ class WhisperTurboTranscriber:
 		text_parts = []
 		for seg in segments:
 			text_parts.append(seg.text)
-		return " ".join(text_parts).strip()
+		return normalize_arabic_text(" ".join(text_parts))
