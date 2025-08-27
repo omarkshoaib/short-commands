@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Packaging
+build/
+dist/
+.eggs/
+*.egg-info/
+*.egg
+
+# Virtual environments and env files
+.venv/
+venv/
+env/
+ENV/
+.env
+.env.*
+
+# Editors/IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Caches
+.cache/
+.mypy_cache/
+.pytest_cache/
+
+# Logs
+*.log
+
+# Project: large/generated data
+recordings/
+results/
+models/
+# If you keep small, versioned configs inside models/, whitelist them like:
+# !models/README.md
+
+# Archives and large artifacts
+*.zip
+*.tar
+*.tar.gz
+*.bin
+*.pt
+*.pth
+*.onnx
+
+# Notebooks checkpoints
+.ipynb_checkpoints/
