@@ -49,6 +49,10 @@ class App:
 		self.kws_check = ttk.Checkbutton(frm, text="Enable wake-word (KWS)", variable=self.kws_enabled_var)
 		self.kws_check.grid(row=2, column=0, sticky="w", pady=(0,6))
 
+		self.enroll_next_var = tk.BooleanVar(value=False)
+		self.enroll_check = ttk.Checkbutton(frm, text="Enroll next as template", variable=self.enroll_next_var)
+		self.enroll_check.grid(row=1, column=0, sticky="w", pady=(0,6))
+
 		# Record button and status
 		self.record_btn = ttk.Button(frm, text="Hold to Record")
 		self.record_btn.grid(row=2, column=1, padx=(0,8))
@@ -182,12 +186,26 @@ class App:
 				from kws.dtw_kws import enroll_templates, score_keyword
 				import glob
 				templates = enroll_templates(sorted(glob.glob(os.path.join(config.KWS_TEMPLATES_DIR, "*.wav"))))
+				# Adjust threshold by SNR: if low SNR, lower the threshold slightly
+				thr = config.KWS_THRESHOLD if snr_db >=  config.SNR_LOW_DB else max(0.05, config.KWS_THRESHOLD - 0.05)
 				score, raw = score_keyword(templates, wav_path)
 				kws_score = float(score)
-				kws_passed = score >= config.KWS_THRESHOLD
+				kws_passed = score >= thr
 			except Exception as exc:
 				errors.append(f"KWS: {exc}")
 				kws_passed = False
+
+		# Optional enrollment: save this VAD-trimmed clip as a new template
+		if self.enroll_next_var.get():
+			try:
+				name = f"template_{int(time.time())}.wav"
+				out_path = os.path.join(config.KWS_TEMPLATES_DIR, name)
+				with open(wav_path, "rb") as s, open(out_path, "wb") as d:
+					d.write(s.read())
+				self.text.insert("end", f"Enrolled template: {name}\n")
+				self.enroll_next_var.set(False)
+			except Exception as exc:
+				errors.append(f"Enroll: {exc}")
 
 		if self.kws_enabled_var.get() and not kws_passed:
 			# Skip STT, write a row with only KWS outcome
