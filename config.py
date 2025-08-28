@@ -34,10 +34,18 @@ W2V2_ENTROPY_MAX: float = float(os.getenv("W2V2_ENTROPY_MAX", "2.20"))  # higher
 SNR_LOW_DB: float = float(os.getenv("SNR_LOW_DB", "10"))  # if below, be stricter
 ALWAYS_RUN_WHISPER: bool = os.getenv("ALWAYS_RUN_WHISPER", "0") in ("1", "true", "True")
 
+# Wake-word KWS settings
+KWS_ENABLED: bool = os.getenv("KWS_ENABLED", "0") in ("1", "true", "True")
+KWS_TEMPLATES_DIR: str = os.getenv("KWS_TEMPLATES_DIR", os.path.join("kws", "templates"))
+KWS_FRAME_MS: int = int(os.getenv("KWS_FRAME_MS", "30"))
+KWS_THRESHOLD: float = float(os.getenv("KWS_THRESHOLD", "0.45"))  # 0..1 score; higher is better
+
 CSV_COLUMNS = [
 	"timestamp",
 	"audio_file",
 	"audio_duration_ms",
+	"kws_passed",
+	"kws_score",
 	"wav2vec2",
 	"w2v2_confidence",
 	"whisper_turbo",
@@ -51,3 +59,4 @@ CSV_COLUMNS = [
 def ensure_dirs() -> None:
 	os.makedirs(RECORDINGS_DIR, exist_ok=True)
 	os.makedirs(RESULTS_DIR, exist_ok=True)
+	os.makedirs(KWS_TEMPLATES_DIR, exist_ok=True)

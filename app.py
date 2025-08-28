@@ -44,9 +44,14 @@ class App:
 		self.whisper_entry = ttk.Entry(frm, textvariable=self.whisper_model_var, width=64)
 		self.whisper_entry.grid(row=1, column=1, sticky="ew", pady=(0,6))
 
+		# KWS controls
+		self.kws_enabled_var = tk.BooleanVar(value=config.KWS_ENABLED)
+		self.kws_check = ttk.Checkbutton(frm, text="Enable wake-word (KWS)", variable=self.kws_enabled_var)
+		self.kws_check.grid(row=2, column=0, sticky="w", pady=(0,6))
+
 		# Record button and status
 		self.record_btn = ttk.Button(frm, text="Hold to Record")
-		self.record_btn.grid(row=2, column=0, padx=(0,8))
+		self.record_btn.grid(row=2, column=1, padx=(0,8))
 		self.record_btn.bind("<ButtonPress-1>", self._on_press)
 		self.record_btn.bind("<ButtonRelease-1>", self._on_release)
 
@@ -169,6 +174,49 @@ class App:
 			except Exception as exc:
 				errors.append(f"Whisper: {exc}")
 
+		# KWS (if enabled)
+		kws_passed = True
+		kws_score = 1.0
+		if self.kws_enabled_var.get():
+			try:
+				from kws.dtw_kws import enroll_templates, score_keyword
+				import glob
+				templates = enroll_templates(sorted(glob.glob(os.path.join(config.KWS_TEMPLATES_DIR, "*.wav"))))
+				score, raw = score_keyword(templates, wav_path)
+				kws_score = float(score)
+				kws_passed = score >= config.KWS_THRESHOLD
+			except Exception as exc:
+				errors.append(f"KWS: {exc}")
+				kws_passed = False
+
+		if self.kws_enabled_var.get() and not kws_passed:
+			# Skip STT, write a row with only KWS outcome
+			row = {
+				"timestamp": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+				"audio_file": os.path.basename(wav_path),
+				"audio_duration_ms": duration_ms,
+				"kws_passed": str(kws_passed),
+				"kws_score": f"{kws_score:.3f}",
+				"wav2vec2": "",
+				"w2v2_confidence": "",
+				"whisper_turbo": "",
+				"whisper_used": "False",
+				"wav2vec2_time_ms": 0,
+				"whisper_time_ms": 0,
+				"total_processing_time_ms": 0,
+			}
+			append_result_row(row)
+			self.text.insert("end", f"KWS rejected (score={kws_score:.2f} < {config.KWS_THRESHOLD})\n\n")
+			self.text.see("end")
+			# Cleanup VAD temp
+			try:
+				if vad_path != self.output_wav_path and os.path.exists(vad_path):
+					os.unlink(vad_path)
+			except Exception:
+				pass
+			self.status_var.set("Ready")
+			return
+
 		# Cleanup VAD temp
 		try:
 			if vad_path != self.output_wav_path and os.path.exists(vad_path):
@@ -183,6 +231,8 @@ class App:
 			"timestamp": datetime.utcnow().isoformat(timespec="seconds") + "Z",
 			"audio_file": os.path.basename(wav_path),
 			"audio_duration_ms": duration_ms,
+			"kws_passed": str(kws_passed),
+			"kws_score": f"{kws_score:.3f}",
 			"wav2vec2": w2v2_text,
 			"w2v2_confidence": f"{w2v2_conf:.3f}",
 			"whisper_turbo": whisper_text,
