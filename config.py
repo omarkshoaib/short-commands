@@ -21,15 +21,6 @@ WHISPER_MODEL: str = os.getenv("WHISPER_MODEL", "large-v3-turbo")
 # Whisper compute type. For CPU, int8 is efficient.
 WHISPER_COMPUTE_TYPE: str = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
 
-# Vosk model path (unzipped directory)
-VOSK_MODEL_PATH: str = os.getenv("VOSK_MODEL_PATH", "models/vosk-model-ar-0.22-linto-1.1.0")
-VOSK_GRAMMAR: str = os.getenv(
-	"VOSK_GRAMMAR",
-	"افتح, اغلق, تشغيل, ايقاف, نعم, لا, امسح, ايميل, الايميل, إيميل, البريد, الرسالة",
-)
-MIN_VOSK_MS: int = int(os.getenv("MIN_VOSK_MS", "1500"))
-PAD_SHORT_FOR_VOSK: bool = os.getenv("PAD_SHORT_FOR_VOSK", "1") not in ("0", "false", "False")
-
 # VAD + ring buffer
 VAD_AGGRESSIVENESS: int = int(os.getenv("VAD_AGGRESSIVENESS", "2"))  # 0-3
 VAD_FRAME_MS: int = int(os.getenv("VAD_FRAME_MS", "30"))  # 10/20/30ms
@@ -51,10 +42,8 @@ CSV_COLUMNS = [
 	"w2v2_confidence",
 	"whisper_turbo",
 	"whisper_used",
-	"vosk",
 	"wav2vec2_time_ms",
 	"whisper_time_ms",
-	"vosk_time_ms",
 	"total_processing_time_ms",
 ]
 

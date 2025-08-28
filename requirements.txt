@@ -7,5 +7,4 @@ librosa
 # torch is platform-specific; try installing CPU build via pip. If fails, follow PyTorch site.
 torch
 faster-whisper
-vosk
 webrtcvad
