@@ -8,3 +8,4 @@ librosa
 torch
 faster-whisper
 vosk
+webrtcvad

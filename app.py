@@ -81,7 +81,11 @@ class App:
 
 	def _on_release(self, _event) -> None:
 		try:
-			self.recorder.stop_and_save(self.output_wav_path)
+			# Stop stream and leave frames in buffer; we'll VAD-trim into a temp WAV
+			if self.recorder._stream is not None:
+				self.recorder._stream.stop()
+				self.recorder._stream.close()
+				self.recorder._stream = None
 		except Exception as exc:
 			messagebox.showerror("Recording error", str(exc))
 			self.status_var.set("Error during recording")
@@ -111,9 +115,36 @@ class App:
 
 	def _transcribe_current(self) -> None:
 		self._ensure_transcribers()
-		wav_path = self.output_wav_path
+		# Produce a VAD-trimmed temp WAV from buffered frames
+		try:
+			vad_path = self.recorder.record_with_vad(
+				aggressiveness=config.VAD_AGGRESSIVENESS,
+				frame_ms=config.VAD_FRAME_MS,
+				ring_ms=config.RING_BUFFER_MS,
+				min_speech_ms=config.MIN_SPEECH_MS,
+			)
+		except Exception as exc:
+			# Fall back to raw file when VAD fails
+			vad_path = self.output_wav_path
+
+		wav_path = vad_path
 
 		duration_ms = self._get_duration_ms(wav_path)
+		# Simple SNR estimate (RMS speech vs overall, coarse)
+		try:
+			import numpy as np  # type: ignore
+			with wave.open(wav_path, "rb") as wf:
+				raw = wf.readframes(wf.getnframes())
+				sig = np.frombuffer(raw, dtype=np.int16).astype(np.float32)
+				rms = np.sqrt(np.mean(sig**2) + 1e-6)
+				# crude noise floor estimate using first 200ms
+				noise_samples = int(wf.getframerate() * 0.2)
+				noise = sig[: max(1, min(noise_samples, sig.size))]
+				rms_n = np.sqrt(np.mean(noise**2) + 1e-6)
+				snr_db = float(20.0 * np.log10(max(rms, 1e-3) / max(rms_n, 1e-3)))
+		except Exception:
+			snr_db = 20.0
+
 		w2v2_text = ""
 		whisper_text = ""
 		vosk_text = ""
@@ -135,11 +166,11 @@ class App:
 		except Exception as exc:
 			errors.append(f"Wav2Vec2: {exc}")
 
-		# Decide if we need Whisper fallback
+		# Decide if we need Whisper fallback (include SNR/duration heuristics)
 		need_whisper = (
 			config.ALWAYS_RUN_WHISPER
 			or (duration_ms >= config.WHISPER_FALLBACK_LONG_MS)
-			or (w2v2_conf > 0 and w2v2_conf < config.W2V2_CONF_THRESHOLD)
+			or (w2v2_conf > 0 and w2v2_conf < (config.W2V2_CONF_THRESHOLD if snr_db >= config.SNR_LOW_DB else (config.W2V2_CONF_THRESHOLD + 0.1)))
 			or (not w2v2_text.strip())
 		)
 
@@ -176,6 +207,13 @@ class App:
 					os.unlink(tmp_path)
 			except Exception:
 				pass
+
+		# Cleanup VAD temp
+		try:
+			if vad_path != self.output_wav_path and os.path.exists(vad_path):
+				os.unlink(vad_path)
+		except Exception:
+			pass
 
 		total_end_time = time.time()
 		total_processing_time_ms = int((total_end_time - total_start_time) * 1000)
