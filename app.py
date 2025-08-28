@@ -120,25 +120,38 @@ class App:
 		w2v2_time_ms = 0
 		whisper_time_ms = 0
 		vosk_time_ms = 0
+		# Initialize to avoid UnboundLocalError and guide fallback logic
+		w2v2_conf = 0.0
+		whisper_used = False
 		errors = []
 
 		total_start_time = time.time()
 
 		try:
 			start_time = time.time()
-			w2v2_text = self.w2v2.transcribe(wav_path)
+			w2v2_text, w2v2_conf = self.w2v2.transcribe_with_confidence(wav_path)
 			end_time = time.time()
 			w2v2_time_ms = int((end_time - start_time) * 1000)
 		except Exception as exc:
 			errors.append(f"Wav2Vec2: {exc}")
 
-		try:
-			start_time = time.time()
-			whisper_text = self.whisper.transcribe(wav_path)
-			end_time = time.time()
-			whisper_time_ms = int((end_time - start_time) * 1000)
-		except Exception as exc:
-			errors.append(f"Whisper: {exc}")
+		# Decide if we need Whisper fallback
+		need_whisper = (
+			config.ALWAYS_RUN_WHISPER
+			or (duration_ms >= config.WHISPER_FALLBACK_LONG_MS)
+			or (w2v2_conf > 0 and w2v2_conf < config.W2V2_CONF_THRESHOLD)
+			or (not w2v2_text.strip())
+		)
+
+		if need_whisper:
+			try:
+				start_time = time.time()
+				whisper_text = self.whisper.transcribe(wav_path)
+				end_time = time.time()
+				whisper_time_ms = int((end_time - start_time) * 1000)
+				whisper_used = True
+			except Exception as exc:
+				errors.append(f"Whisper: {exc}")
 
 		try:
 			vosk_input = wav_path
@@ -172,7 +185,9 @@ class App:
 			"audio_file": os.path.basename(wav_path),
 			"audio_duration_ms": duration_ms,
 			"wav2vec2": w2v2_text,
+			"w2v2_confidence": f"{w2v2_conf:.3f}",
 			"whisper_turbo": whisper_text,
+			"whisper_used": str(whisper_used),
 			"vosk": vosk_text,
 			"wav2vec2_time_ms": w2v2_time_ms,
 			"whisper_time_ms": whisper_time_ms,
@@ -182,8 +197,11 @@ class App:
 		append_result_row(row)
 
 		self.text.insert("end", f"File: {row['audio_file']}  ({duration_ms} ms)\n")
-		self.text.insert("end", f"Wav2Vec2 ({w2v2_time_ms}ms): {w2v2_text}\n")
-		self.text.insert("end", f"Whisper ({whisper_time_ms}ms): {whisper_text}\n")
+		self.text.insert("end", f"Wav2Vec2 ({w2v2_time_ms}ms, conf={w2v2_conf:.2f}): {w2v2_text}\n")
+		if whisper_used:
+			self.text.insert("end", f"Whisper ({whisper_time_ms}ms): {whisper_text}\n")
+		else:
+			self.text.insert("end", f"Whisper: skipped (policy)\n")
 		self.text.insert("end", f"Vosk ({vosk_time_ms}ms): {vosk_text}\n")
 		self.text.insert("end", f"Total processing time: {total_processing_time_ms}ms\n")
 		if errors:

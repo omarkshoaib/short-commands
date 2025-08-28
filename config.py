@@ -32,12 +32,19 @@ VOSK_GRAMMAR: str = os.getenv(
 MIN_VOSK_MS: int = int(os.getenv("MIN_VOSK_MS", "1500"))
 PAD_SHORT_FOR_VOSK: bool = os.getenv("PAD_SHORT_FOR_VOSK", "1") not in ("0", "false", "False")
 
+# Whisper fallback policy
+WHISPER_FALLBACK_LONG_MS: int = int(os.getenv("WHISPER_FALLBACK_LONG_MS", "6000"))
+W2V2_CONF_THRESHOLD: float = float(os.getenv("W2V2_CONF_THRESHOLD", "0.60"))
+ALWAYS_RUN_WHISPER: bool = os.getenv("ALWAYS_RUN_WHISPER", "0") in ("1", "true", "True")
+
 CSV_COLUMNS = [
 	"timestamp",
 	"audio_file",
 	"audio_duration_ms",
 	"wav2vec2",
+	"w2v2_confidence",
 	"whisper_turbo",
+	"whisper_used",
 	"vosk",
 	"wav2vec2_time_ms",
 	"whisper_time_ms",
