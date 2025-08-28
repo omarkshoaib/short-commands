@@ -26,6 +26,7 @@ class App:
 
 		self.w2v2_model_var = tk.StringVar(value=config.W2V2_MODEL_ID)
 		self.whisper_model_var = tk.StringVar(value=config.WHISPER_MODEL)
+		self.profile_var = tk.StringVar(value=config.KWS_PROFILE_ID)
 
 		self.w2v2 = None
 		self.whisper = None
@@ -49,6 +50,10 @@ class App:
 		self.kws_enabled_var = tk.BooleanVar(value=config.KWS_ENABLED)
 		self.kws_check = ttk.Checkbutton(frm, text="Enable wake-word (KWS)", variable=self.kws_enabled_var)
 		self.kws_check.grid(row=2, column=0, sticky="w", pady=(0,6))
+
+		ttk.Label(frm, text="Profile").grid(row=0, column=2, sticky="e", padx=(8,4))
+		self.profile_entry = ttk.Entry(frm, textvariable=self.profile_var, width=16)
+		self.profile_entry.grid(row=0, column=3, sticky="w")
 
 		self.enroll_next_var = tk.BooleanVar(value=False)
 		self.enroll_check = ttk.Checkbutton(frm, text="Enroll next as template", variable=self.enroll_next_var)
@@ -200,11 +205,14 @@ class App:
 		# Optional enrollment: save this VAD-trimmed clip as a new template
 		if self.enroll_next_var.get():
 			try:
+				pid = self.profile_var.get().strip() or "default"
+				dir_path = os.path.join(config.KWS_TEMPLATES_DIR, pid)
+				os.makedirs(dir_path, exist_ok=True)
 				name = f"template_{int(time.time())}.wav"
-				out_path = os.path.join(config.KWS_TEMPLATES_DIR, name)
+				out_path = os.path.join(dir_path, name)
 				with open(wav_path, "rb") as s, open(out_path, "wb") as d:
 					d.write(s.read())
-				self.text.insert("end", f"Enrolled template: {name}\n")
+				self.text.insert("end", f"Enrolled template in {pid}: {name}\n")
 				self.enroll_next_var.set(False)
 			except Exception as exc:
 				errors.append(f"Enroll: {exc}")

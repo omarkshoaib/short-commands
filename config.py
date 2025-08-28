@@ -47,6 +47,10 @@ KWS_TEMP_WINDOW_MS: int = int(os.getenv("KWS_TEMP_WINDOW_MS", "400"))
 KWS_TEMP_HOP_MS: int = int(os.getenv("KWS_TEMP_HOP_MS", "100"))
 KWS_TEMP_MIN_FRAC: float = float(os.getenv("KWS_TEMP_MIN_FRAC", "0.40"))
 KWS_BAND_FRAC: float = float(os.getenv("KWS_BAND_FRAC", "0.15"))
+# Personalization + secondary checker
+KWS_PROFILE_ID: str = os.getenv("KWS_PROFILE_ID", "default")
+KWS_REQUIRE_SECONDARY: bool = os.getenv("KWS_REQUIRE_SECONDARY", "1") in ("1", "true", "True")
+KWS_SECONDARY_BAND_FRAC: float = float(os.getenv("KWS_SECONDARY_BAND_FRAC", "0.10"))
 
 # Command grammar (Arabic phrases to snap to)
 COMMANDS: list[str] = [
