@@ -11,7 +11,7 @@ from audio.recorder import Recorder
 from transcribers.wav2vec2_transcriber import Wav2Vec2Transcriber
 from transcribers.whisper_turbo_transcriber import WhisperTurboTranscriber
 from utils.csv_logger import append_result_row
-from utils.text_map import map_to_commands
+from utils.text_map import map_to_commands, normalize_ar
 
 
 class App:
@@ -160,16 +160,21 @@ class App:
 			w2v2_time_ms = int((end_time - start_time) * 1000)
 		except Exception as exc:
 			errors.append(f"Wav2Vec2: {exc}")
-		w2v2_mapped, _ = map_to_commands(w2v2_text, config.COMMANDS, config.CMD_MAP_MAX_DISTANCE)
+		w2v2_mapped, w2v2_dist = map_to_commands(w2v2_text, config.COMMANDS, config.CMD_MAP_MAX_DISTANCE)
+		# Normalized distance heuristic: distance / max(len(inp), len(cmd))
+		norm_len = max(1, len(normalize_ar(w2v2_text)))
+		w2v2_norm_dist = (w2v2_dist / max(norm_len, 1)) if w2v2_dist < 10**9 else 1.0
 
-		# Decide if we need Whisper fallback (include SNR/duration heuristics)
+		# Decide if we need Whisper fallback (include SNR/duration heuristics + mapping quality)
 		need_whisper = (
 			config.ALWAYS_RUN_WHISPER
 			or (duration_ms >= config.WHISPER_FALLBACK_LONG_MS)
 			or (w2v2_conf > 0 and w2v2_conf < (config.W2V2_CONF_THRESHOLD if snr_db >= config.SNR_LOW_DB else (config.W2V2_CONF_THRESHOLD + 0.1)))
 			or (not w2v2_text.strip())
+			or (not w2v2_mapped and w2v2_norm_dist > 0.35)  # mapping-aware fallback
 		)
 
+		whisper_mapped = ""
 		if need_whisper:
 			try:
 				start_time = time.time()
@@ -177,9 +182,9 @@ class App:
 				end_time = time.time()
 				whisper_time_ms = int((end_time - start_time) * 1000)
 				whisper_used = True
+				whisper_mapped, _ = map_to_commands(whisper_text, config.COMMANDS, config.CMD_MAP_MAX_DISTANCE)
 			except Exception as exc:
 				errors.append(f"Whisper: {exc}")
-		whisper_mapped, _ = map_to_commands(whisper_text, config.COMMANDS, config.CMD_MAP_MAX_DISTANCE)
 
 		# KWS (if enabled)
 		kws_passed = True
