@@ -10,6 +10,7 @@ SAMPLE_RATE: int = int(os.getenv("SAMPLE_RATE", "16000"))
 RECORDINGS_DIR: str = os.getenv("RECORDINGS_DIR", "recordings")
 RESULTS_DIR: str = os.getenv("RESULTS_DIR", "results")
 RESULTS_CSV: str = os.path.join(RESULTS_DIR, os.getenv("RESULTS_CSV", "transcriptions.csv"))
+TELEMETRY_PATH: str = os.path.join(RESULTS_DIR, os.getenv("TELEMETRY_PATH", "telemetry.jsonl"))
 
 # Device control (cpu|cuda). Default to CPU to avoid cuDNN issues.
 STT_DEVICE: str = os.getenv("STT_DEVICE", "cpu").lower()
@@ -39,6 +40,13 @@ KWS_ENABLED: bool = os.getenv("KWS_ENABLED", "0") in ("1", "true", "True")
 KWS_TEMPLATES_DIR: str = os.getenv("KWS_TEMPLATES_DIR", os.path.join("kws", "templates"))
 KWS_FRAME_MS: int = int(os.getenv("KWS_FRAME_MS", "30"))
 KWS_THRESHOLD: float = float(os.getenv("KWS_THRESHOLD", "0.45"))
+# Temporal integration
+KWS_THR_HIGH: float = float(os.getenv("KWS_THR_HIGH", "0.50"))
+KWS_THR_LOW: float = float(os.getenv("KWS_THR_LOW", "0.40"))
+KWS_TEMP_WINDOW_MS: int = int(os.getenv("KWS_TEMP_WINDOW_MS", "400"))
+KWS_TEMP_HOP_MS: int = int(os.getenv("KWS_TEMP_HOP_MS", "100"))
+KWS_TEMP_MIN_FRAC: float = float(os.getenv("KWS_TEMP_MIN_FRAC", "0.40"))
+KWS_BAND_FRAC: float = float(os.getenv("KWS_BAND_FRAC", "0.15"))
 
 # Command grammar (Arabic phrases to snap to)
 COMMANDS: list[str] = [

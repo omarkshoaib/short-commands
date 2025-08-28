@@ -191,14 +191,8 @@ class App:
 		kws_score = 1.0
 		if self.kws_enabled_var.get():
 			try:
-				from kws.dtw_kws import enroll_templates, score_keyword
-				import glob
-				templates = enroll_templates(sorted(glob.glob(os.path.join(config.KWS_TEMPLATES_DIR, "*.wav"))))
-				# Adjust threshold by SNR: if low SNR, lower the threshold slightly
-				thr = config.KWS_THRESHOLD if snr_db >=  config.SNR_LOW_DB else max(0.05, config.KWS_THRESHOLD - 0.05)
-				score, raw = score_keyword(templates, wav_path)
-				kws_score = float(score)
-				kws_passed = score >= thr
+				from kws.temporal_gate import temporal_gate
+				kws_passed, kws_score = temporal_gate(wav_path)
 			except Exception as exc:
 				errors.append(f"KWS: {exc}")
 				kws_passed = False
@@ -285,6 +279,22 @@ class App:
 		self.text.insert("end", "\n")
 		self.text.see("end")
 		self.status_var.set("Done")
+
+		# Telemetry JSONL
+		try:
+			import json
+			tele = {
+				"timestamp": row["timestamp"],
+				"duration_ms": duration_ms,
+				"snr_db": snr_db,
+				"kws": {"enabled": self.kws_enabled_var.get(), "passed": kws_passed, "score": kws_score},
+				"w2v2": {"conf": w2v2_conf, "text": w2v2_text, "mapped": w2v2_mapped, "time_ms": w2v2_time_ms},
+				"whisper": {"used": whisper_used, "text": whisper_text, "mapped": whisper_mapped, "time_ms": whisper_time_ms},
+			}
+			with open(config.TELEMETRY_PATH, "a", encoding="utf-8") as f:
+				f.write(json.dumps(tele, ensure_ascii=False) + "\n")
+		except Exception:
+			pass
 
 
 def main() -> None:
