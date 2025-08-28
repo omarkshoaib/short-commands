@@ -38,7 +38,19 @@ ALWAYS_RUN_WHISPER: bool = os.getenv("ALWAYS_RUN_WHISPER", "0") in ("1", "true",
 KWS_ENABLED: bool = os.getenv("KWS_ENABLED", "0") in ("1", "true", "True")
 KWS_TEMPLATES_DIR: str = os.getenv("KWS_TEMPLATES_DIR", os.path.join("kws", "templates"))
 KWS_FRAME_MS: int = int(os.getenv("KWS_FRAME_MS", "30"))
-KWS_THRESHOLD: float = float(os.getenv("KWS_THRESHOLD", "0.45"))  # 0..1 score; higher is better
+KWS_THRESHOLD: float = float(os.getenv("KWS_THRESHOLD", "0.45"))
+
+# Command grammar (Arabic phrases to snap to)
+COMMANDS: list[str] = [
+	"امسح الإيميل",
+	"افتح",
+	"اغلق",
+	"تشغيل",
+	"ايقاف",
+	"نعم",
+	"لا",
+]
+CMD_MAP_MAX_DISTANCE: int = int(os.getenv("CMD_MAP_MAX_DISTANCE", "4"))
 
 CSV_COLUMNS = [
 	"timestamp",
@@ -48,8 +60,10 @@ CSV_COLUMNS = [
 	"kws_score",
 	"wav2vec2",
 	"w2v2_confidence",
+	"wav2vec2_mapped",
 	"whisper_turbo",
 	"whisper_used",
+	"whisper_mapped",
 	"wav2vec2_time_ms",
 	"whisper_time_ms",
 	"total_processing_time_ms",

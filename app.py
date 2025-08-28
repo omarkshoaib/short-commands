@@ -11,6 +11,7 @@ from audio.recorder import Recorder
 from transcribers.wav2vec2_transcriber import Wav2Vec2Transcriber
 from transcribers.whisper_turbo_transcriber import WhisperTurboTranscriber
 from utils.csv_logger import append_result_row
+from utils.text_map import map_to_commands
 
 
 class App:
@@ -159,6 +160,7 @@ class App:
 			w2v2_time_ms = int((end_time - start_time) * 1000)
 		except Exception as exc:
 			errors.append(f"Wav2Vec2: {exc}")
+		w2v2_mapped, _ = map_to_commands(w2v2_text, config.COMMANDS, config.CMD_MAP_MAX_DISTANCE)
 
 		# Decide if we need Whisper fallback (include SNR/duration heuristics)
 		need_whisper = (
@@ -177,6 +179,7 @@ class App:
 				whisper_used = True
 			except Exception as exc:
 				errors.append(f"Whisper: {exc}")
+		whisper_mapped, _ = map_to_commands(whisper_text, config.COMMANDS, config.CMD_MAP_MAX_DISTANCE)
 
 		# KWS (if enabled)
 		kws_passed = True
@@ -253,8 +256,10 @@ class App:
 			"kws_score": f"{kws_score:.3f}",
 			"wav2vec2": w2v2_text,
 			"w2v2_confidence": f"{w2v2_conf:.3f}",
+			"wav2vec2_mapped": w2v2_mapped,
 			"whisper_turbo": whisper_text,
 			"whisper_used": str(whisper_used),
+			"whisper_mapped": whisper_mapped,
 			"wav2vec2_time_ms": w2v2_time_ms,
 			"whisper_time_ms": whisper_time_ms,
 			"total_processing_time_ms": total_processing_time_ms,
@@ -263,8 +268,10 @@ class App:
 
 		self.text.insert("end", f"File: {row['audio_file']}  ({duration_ms} ms)\n")
 		self.text.insert("end", f"Wav2Vec2 ({w2v2_time_ms}ms, conf={w2v2_conf:.2f}): {w2v2_text}\n")
+		self.text.insert("end", f"W2V2 mapped: {w2v2_mapped or '-'}\n")
 		if whisper_used:
 			self.text.insert("end", f"Whisper ({whisper_time_ms}ms): {whisper_text}\n")
+			self.text.insert("end", f"Whisper mapped: {whisper_mapped or '-'}\n")
 		else:
 			self.text.insert("end", f"Whisper: skipped (policy)\n")
 		self.text.insert("end", f"Total processing time: {total_processing_time_ms}ms\n")
