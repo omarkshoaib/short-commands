@@ -19,7 +19,7 @@ def _getch() -> str:
 	fd = sys.stdin.fileno()
 	old = termios.tcgetattr(fd)
 	try:
-		ty.setraw(fd)
+		tty.setraw(fd)
 		ch = sys.stdin.read(1)
 	finally:
 		termios.tcsetattr(fd, termios.TCSADRAIN, old)
