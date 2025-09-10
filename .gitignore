@@ -52,3 +52,11 @@ models/
 
 # Notebooks checkpoints
 .ipynb_checkpoints/
+
+# Datasets and exports (ignore bulky artifacts; keep small metadata)
+data/**
+!data/*.csv
+!data/README.md
+exports/**
+!exports/mfcc_cnn/label_map.json
+checkpoints/
