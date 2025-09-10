@@ -35,22 +35,7 @@ W2V2_ENTROPY_MAX: float = float(os.getenv("W2V2_ENTROPY_MAX", "2.20"))  # higher
 SNR_LOW_DB: float = float(os.getenv("SNR_LOW_DB", "10"))  # if below, be stricter
 ALWAYS_RUN_WHISPER: bool = os.getenv("ALWAYS_RUN_WHISPER", "0") in ("1", "true", "True")
 
-# Wake-word KWS settings
-KWS_ENABLED: bool = os.getenv("KWS_ENABLED", "0") in ("1", "true", "True")
-KWS_TEMPLATES_DIR: str = os.getenv("KWS_TEMPLATES_DIR", os.path.join("kws", "templates"))
-KWS_FRAME_MS: int = int(os.getenv("KWS_FRAME_MS", "30"))
-KWS_THRESHOLD: float = float(os.getenv("KWS_THRESHOLD", "0.45"))
-# Temporal integration
-KWS_THR_HIGH: float = float(os.getenv("KWS_THR_HIGH", "0.50"))
-KWS_THR_LOW: float = float(os.getenv("KWS_THR_LOW", "0.40"))
-KWS_TEMP_WINDOW_MS: int = int(os.getenv("KWS_TEMP_WINDOW_MS", "400"))
-KWS_TEMP_HOP_MS: int = int(os.getenv("KWS_TEMP_HOP_MS", "100"))
-KWS_TEMP_MIN_FRAC: float = float(os.getenv("KWS_TEMP_MIN_FRAC", "0.40"))
-KWS_BAND_FRAC: float = float(os.getenv("KWS_BAND_FRAC", "0.15"))
-# Personalization + secondary checker
-KWS_PROFILE_ID: str = os.getenv("KWS_PROFILE_ID", "default")
-KWS_REQUIRE_SECONDARY: bool = os.getenv("KWS_REQUIRE_SECONDARY", "1") in ("1", "true", "True")
-KWS_SECONDARY_BAND_FRAC: float = float(os.getenv("KWS_SECONDARY_BAND_FRAC", "0.10"))
+## KWS removed
 
 # Command grammar (Arabic phrases to snap to)
 COMMANDS: list[str] = [
@@ -68,8 +53,9 @@ CSV_COLUMNS = [
 	"timestamp",
 	"audio_file",
 	"audio_duration_ms",
-	"kws_passed",
-	"kws_score",
+	"mfcc_label",
+	"mfcc_confidence",
+	"mfcc_used",
 	"wav2vec2",
 	"w2v2_confidence",
 	"wav2vec2_mapped",
@@ -85,4 +71,35 @@ CSV_COLUMNS = [
 def ensure_dirs() -> None:
 	os.makedirs(RECORDINGS_DIR, exist_ok=True)
 	os.makedirs(RESULTS_DIR, exist_ok=True)
-	os.makedirs(KWS_TEMPLATES_DIR, exist_ok=True)
+    # KWS templates dir no longer used
+
+# MFCC CNN runtime (optional front-end classifier)
+MFCC_CNN_ENABLED: bool = os.getenv("MFCC_CNN_ENABLED", "1") in ("1", "true", "True")
+MFCC_CNN_GATE_STT: bool = os.getenv("MFCC_CNN_GATE_STT", "1") in ("1", "true", "True")
+MFCC_CNN_CONF_THRESHOLD: float = float(os.getenv("MFCC_CNN_CONF_THRESHOLD", "0.75"))
+MFCC_CNN_CKPT_PATH: str = os.getenv("MFCC_CNN_CKPT_PATH", os.path.join("checkpoints", "mfcc_cnn", "best.pt"))
+MFCC_FEATURE_TYPE: str = os.getenv("MFCC_FEATURE_TYPE", "logmel")
+MFCC_NUM_MELS: int = int(os.getenv("MFCC_NUM_MELS", "64"))
+MFCC_NUM_MFCC: int = int(os.getenv("MFCC_NUM_MFCC", "40"))
+MFCC_WIN_MS: int = int(os.getenv("MFCC_WIN_MS", "25"))
+MFCC_HOP_MS: int = int(os.getenv("MFCC_HOP_MS", "10"))
+MFCC_FMIN: int = int(os.getenv("MFCC_FMIN", "20"))
+MFCC_FMAX: int = int(os.getenv("MFCC_FMAX", "7600"))
+MFCC_CMVN: bool = os.getenv("MFCC_CMVN", "1") in ("1", "true", "True")
+MFCC_DELTAS: bool = os.getenv("MFCC_DELTAS", "0") in ("1", "true", "True")
+MFCC_CNN_REQUIRE_MAPPING: bool = os.getenv("MFCC_CNN_REQUIRE_MAPPING", "1") in ("1", "true", "True")
+
+# Map MFCC-CNN English labels to our Arabic COMMANDS (accept only if mapped)
+# Extend as needed if you train on more classes.
+MFCC_LABEL_TO_COMMAND: dict[str, str] = {
+	"open": "افتح",
+	"close": "اغلق",
+	"yes": "نعم",
+	"no": "لا",
+	"start": "تشغيل",
+	"stop": "ايقاف",
+}
+
+# CNN sliding-window inference (milliseconds)
+MFCC_SLIDE_WINDOW_MS: int = int(os.getenv("MFCC_SLIDE_WINDOW_MS", "1000"))
+MFCC_SLIDE_HOP_MS: int = int(os.getenv("MFCC_SLIDE_HOP_MS", "500"))

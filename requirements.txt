@@ -8,3 +8,4 @@ librosa
 torch
 faster-whisper
 webrtcvad
+torchaudio==2.8.0

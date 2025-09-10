@@ -26,7 +26,7 @@ class App:
 
 		self.w2v2_model_var = tk.StringVar(value=config.W2V2_MODEL_ID)
 		self.whisper_model_var = tk.StringVar(value=config.WHISPER_MODEL)
-		self.profile_var = tk.StringVar(value=config.KWS_PROFILE_ID)
+		# KWS profile removed
 
 		self.w2v2 = None
 		self.whisper = None
@@ -46,18 +46,7 @@ class App:
 		self.whisper_entry = ttk.Entry(frm, textvariable=self.whisper_model_var, width=64)
 		self.whisper_entry.grid(row=1, column=1, sticky="ew", pady=(0,6))
 
-		# KWS controls
-		self.kws_enabled_var = tk.BooleanVar(value=config.KWS_ENABLED)
-		self.kws_check = ttk.Checkbutton(frm, text="Enable wake-word (KWS)", variable=self.kws_enabled_var)
-		self.kws_check.grid(row=2, column=0, sticky="w", pady=(0,6))
-
-		ttk.Label(frm, text="Profile").grid(row=0, column=2, sticky="e", padx=(8,4))
-		self.profile_entry = ttk.Entry(frm, textvariable=self.profile_var, width=16)
-		self.profile_entry.grid(row=0, column=3, sticky="w")
-
-		self.enroll_next_var = tk.BooleanVar(value=False)
-		self.enroll_check = ttk.Checkbutton(frm, text="Enroll next as template", variable=self.enroll_next_var)
-		self.enroll_check.grid(row=1, column=0, sticky="w", pady=(0,6))
+		# KWS removed
 
 		# Record button and status
 		self.record_btn = ttk.Button(frm, text="Hold to Record")
@@ -191,59 +180,7 @@ class App:
 			except Exception as exc:
 				errors.append(f"Whisper: {exc}")
 
-		# KWS (if enabled)
-		kws_passed = True
-		kws_score = 1.0
-		if self.kws_enabled_var.get():
-			try:
-				from kws.temporal_gate import temporal_gate
-				kws_passed, kws_score = temporal_gate(wav_path)
-			except Exception as exc:
-				errors.append(f"KWS: {exc}")
-				kws_passed = False
-
-		# Optional enrollment: save this VAD-trimmed clip as a new template
-		if self.enroll_next_var.get():
-			try:
-				pid = self.profile_var.get().strip() or "default"
-				dir_path = os.path.join(config.KWS_TEMPLATES_DIR, pid)
-				os.makedirs(dir_path, exist_ok=True)
-				name = f"template_{int(time.time())}.wav"
-				out_path = os.path.join(dir_path, name)
-				with open(wav_path, "rb") as s, open(out_path, "wb") as d:
-					d.write(s.read())
-				self.text.insert("end", f"Enrolled template in {pid}: {name}\n")
-				self.enroll_next_var.set(False)
-			except Exception as exc:
-				errors.append(f"Enroll: {exc}")
-
-		if self.kws_enabled_var.get() and not kws_passed:
-			# Skip STT, write a row with only KWS outcome
-			row = {
-				"timestamp": datetime.utcnow().isoformat(timespec="seconds") + "Z",
-				"audio_file": os.path.basename(wav_path),
-				"audio_duration_ms": duration_ms,
-				"kws_passed": str(kws_passed),
-				"kws_score": f"{kws_score:.3f}",
-				"wav2vec2": "",
-				"w2v2_confidence": "",
-				"whisper_turbo": "",
-				"whisper_used": "False",
-				"wav2vec2_time_ms": 0,
-				"whisper_time_ms": 0,
-				"total_processing_time_ms": 0,
-			}
-			append_result_row(row)
-			self.text.insert("end", f"KWS rejected (score={kws_score:.2f} < {config.KWS_THRESHOLD})\n\n")
-			self.text.see("end")
-			# Cleanup VAD temp
-			try:
-				if vad_path != self.output_wav_path and os.path.exists(vad_path):
-					os.unlink(vad_path)
-			except Exception:
-				pass
-			self.status_var.set("Ready")
-			return
+		# KWS removed
 
 		# Cleanup VAD temp
 		try:
@@ -259,8 +196,6 @@ class App:
 			"timestamp": datetime.utcnow().isoformat(timespec="seconds") + "Z",
 			"audio_file": os.path.basename(wav_path),
 			"audio_duration_ms": duration_ms,
-			"kws_passed": str(kws_passed),
-			"kws_score": f"{kws_score:.3f}",
 			"wav2vec2": w2v2_text,
 			"w2v2_confidence": f"{w2v2_conf:.3f}",
 			"wav2vec2_mapped": w2v2_mapped,
@@ -295,7 +230,6 @@ class App:
 				"timestamp": row["timestamp"],
 				"duration_ms": duration_ms,
 				"snr_db": snr_db,
-				"kws": {"enabled": self.kws_enabled_var.get(), "passed": kws_passed, "score": kws_score},
 				"w2v2": {"conf": w2v2_conf, "text": w2v2_text, "mapped": w2v2_mapped, "time_ms": w2v2_time_ms},
 				"whisper": {"used": whisper_used, "text": whisper_text, "mapped": whisper_mapped, "time_ms": whisper_time_ms},
 			}
